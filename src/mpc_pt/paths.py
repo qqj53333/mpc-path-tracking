@@ -33,12 +33,16 @@ class StraightPath:
         self.start = np.asarray(start, dtype=float).reshape(2)
         self.theta = float(theta)
         self.length = float(length)
+        if (not np.all(np.isfinite(self.start)) or not np.isfinite(self.theta)
+                or not np.isfinite(self.length) or self.length < 0):
+            raise ValueError("straight path coordinates must be finite and length nonnegative")
 
     def at(self, s):
         s = np.clip(np.asarray(s, dtype=float), 0.0, self.length)
         direction = np.array([np.cos(self.theta), np.sin(self.theta)])
-        xy = self.start[:, None] + direction[:, None] * s[None, :]
-        return xy[0], xy[1], np.full_like(s, self.theta)
+        x = self.start[0] + direction[0] * s
+        y = self.start[1] + direction[1] * s
+        return x, y, np.full_like(s, self.theta)
 
     def curvature(self, s):
         return np.zeros_like(np.asarray(s, dtype=float))
@@ -147,7 +151,13 @@ def reference_from_path(
     `delta_ref = atan(L * kappa)`, so that `R` penalises the deviation from the
     reference input rather than forcing the steering angle to zero.
     """
+    if isinstance(n_steps, bool) or not isinstance(n_steps, (int, np.integer)) or n_steps < 1:
+        raise ValueError("n_steps must be a positive integer")
     s = s_start + speed * dt * np.arange(n_steps + 1)
+    if not np.isfinite(dt) or dt <= 0 or not np.isfinite(speed) or speed < 0:
+        raise ValueError("reference dt must be positive and speed nonnegative")
+    if not np.all(np.isfinite(s)) or s.min() < 0 or s.max() > path.length + 1e-9:
+        raise ValueError("reference exceeds the finite path; endpoint stopping is not implemented")
     x, y, theta = path.at(s)
     states = np.column_stack([x, y, theta, np.full(n_steps + 1, speed)])
     delta_ref = np.arctan(wheelbase * path.curvature(s))

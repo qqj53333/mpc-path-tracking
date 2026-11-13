@@ -1,7 +1,7 @@
 # Results
 
-The tables and figures below were regenerated from the six experiment scripts
-on 2026-11-14 after the geometry fixes. Timings describe this run, not a
+The tables and figures below were regenerated from the eight experiment scripts
+on 2026-11-14 after the solver-validity and boundary fixes. Timings describe this run, not a
 performance guarantee. [Verification details](verification.md) and the captured
 [experiment output](experiment-results.json) are included.
 
@@ -13,6 +13,8 @@ Reproduce everything from the repository root:
     python experiments/03_constraints.py
     python experiments/04_horizon.py
     python experiments/05_mpc_vs_baseline.py
+    python experiments/06_benchmark.py
+    python experiments/07_sampling.py
     python -m pytest
 
 ## Phase 0 - open-loop kinematic bicycle model
@@ -87,10 +89,10 @@ target `p_ref = 5 m`, `Q = diag(1, 0.1)`, `R = 0.1`, `P = Q`.
 | max abs(a) | 0.500000000 m/s^2 (limit 0.5) |
 | steps with `a` at the limit | 38 of 150 |
 | steps with `v` at the limit | 31 of 150 |
-| solve time | mean 2.18 ms, max 41.66 ms, total 0.33 s |
+| solve time | mean 1.98 ms, max 35.02 ms, total 0.30 s |
 | solver status | `optimal` on all 150 steps |
 
-The first solve of the run is the slow one (~42 ms, cvxpy/OSQP setup); after
+The first solve of the run is the slow one (~35 ms, cvxpy/OSQP setup); after
 that the warm-started QP takes ~2 ms.
 
 **The approach is not monotone.** With `q_velocity = 0.1` the car overshoots
@@ -107,13 +109,15 @@ Data: `outputs/02_straight.csv`, `outputs/02_arc.csv`
 
 `N = 20`, `T = 0.1 s`, `v_ref = 2 m/s`, weights from `docs/model.md`
 (`Q = diag(4, 4, 32.8, 1)`, `R = diag(0.25, 3.64)`, `P = 3Q`), **no**
-constraints and no input-change penalty. Direct nonlinear MPC (CasADi/IPOPT),
+physical actuator/state limits and no input-change penalty. The mandatory
+steering guard `abs(delta) <= pi/2 - 0.001` keeps the model on its principal
+branch even in this phase. Direct nonlinear MPC (CasADi/IPOPT),
 forward-Euler prediction, heading error wrapped with `atan2(sin, cos)`.
 
 | path | max abs(e_lat) | final abs(e_lat) | rms e_lat | max abs(delta) | solve time (mean) |
 |---|---|---|---|---|---|
-| straight line, 0.5 m offset | 0.500 m | 0.0000 m | 0.1254 m | 0.423 rad | 1.6 ms |
-| arc R = 8 m, 0.5 m offset | 0.502 m | 0.0200 m | 0.1586 m | 0.815 rad | 1.9 ms |
+| straight line, 0.5 m offset | 0.500 m | 0.0000 m | 0.1254 m | 0.423 rad | 2.9 ms |
+| arc R = 8 m, 0.5 m offset | 0.502 m | 0.0200 m | 0.1586 m | 0.815 rad | 2.6 ms |
 
 Both converge. The unconstrained controller asks for **0.815 rad (47 deg)** of
 steering at the first step of the arc, exceeding this project's 30 deg limit. That
@@ -132,9 +136,9 @@ Arc R = 8 m, 0.5 m offset, v_ref = 2 m/s, 12 s. `limits` means
 
 | variant | max abs(delta) | mean abs(Delta delta) | max abs(e_lat) | rms e_lat | final abs(e_lat) | solve ms |
 |---|---|---|---|---|---|---|
-| no constraints | 0.8154 | 0.0052 | 0.5024 | 0.1586 | 0.0200 | 2.16 |
-| limits | 0.5236 | 0.0070 | 0.6046 | 0.2536 | 0.0202 | 4.26 |
-| limits + S | 0.5236 | 0.0070 | 0.6047 | 0.2538 | 0.0204 | 4.56 |
+| no constraints | 0.8154 | 0.0052 | 0.5024 | 0.1586 | 0.0200 | 2.99 |
+| limits | 0.5236 | 0.0070 | 0.6046 | 0.2536 | 0.0202 | 4.15 |
+| limits + S | 0.5236 | 0.0070 | 0.6047 | 0.2538 | 0.0204 | 4.33 |
 
 Two observations, both only for this scenario:
 
@@ -158,14 +162,14 @@ Same arc and constraints, `N in {5, 10, 20, 40}`.
 
 | N | look-ahead | rms e_lat | final abs(e_lat) | solve time (mean) |
 |---|---|---|---|---|
-| 5 | 0.5 s | 0.3449 m | 0.1302 m | 2.53 ms |
-| 10 | 1.0 s | 0.2862 m | 0.0596 m | 3.53 ms |
-| 20 | 2.0 s | 0.2538 m | 0.0204 m | 4.70 ms |
-| 40 | 4.0 s | 0.2454 m | 0.0038 m | 17.58 ms |
+| 5 | 0.5 s | 0.3449 m | 0.1302 m | 2.35 ms |
+| 10 | 1.0 s | 0.2862 m | 0.0596 m | 3.15 ms |
+| 20 | 2.0 s | 0.2538 m | 0.0204 m | 4.24 ms |
+| 40 | 4.0 s | 0.2454 m | 0.0038 m | 23.02 ms |
 
 Within this scenario, lengthening the horizon improves tracking monotonically.
-The last step costs about 3.7x more mean solve time for about a 3.3 % rms
-improvement in this run. Choosing `N = 20` is a practical tuning choice, not a law.
+The N=40 run uses about 5.4x the mean solve time of N=20
+for about a 3.3 % rms improvement. This is specific to this scenario and run.
 
 ### 3.3 MPC vs pure pursuit
 
@@ -215,21 +219,20 @@ Not established by this project:
 - real-time feasibility on embedded hardware: timings are from one Windows
   laptop with the Python overhead included.
 
-## Fresh-environment check
+## Verification and expanded comparison
 
-An isolated Windows/Python 3.12 environment was created for the 2026-11-14
-review. Dependencies installed successfully, and the corrected project was
-tested and all experiments rerun with that environment:
+`python experiments/run_all.py` ran 61 tests and all eight experiments in the
+locked Windows/Python 3.12 environment. The complete command statuses and logs
+are in `outputs/run_manifest.json`; any failed command leaves `complete=false`
+and returns a nonzero exit code. Numerical solver failure stops the original
+comparison scripts before they publish new results.
 
-    python -m venv .venv-fresh
-    .venv-fresh\Scripts\python.exe -m pip install -r requirements-windows-lock.txt
-    .venv-fresh\Scripts\python.exe -m pytest
-    .venv-fresh\Scripts\python.exe experiments\00_open_loop.py   # then 01 ... 05
-
-Result: **35 tests passed**, and all six experiments ran successfully.
-The checked-in figures and data were regenerated after the fixes. See
-[verification](verification.md) for hashes and environment details. Wall-clock
-solve times vary materially; they are not expected to reproduce exactly.
+The original comparison above uses N=20 and a 4 m baseline look-ahead for
+teaching. It does not select the best baseline. The separate
+[train/test benchmark](benchmark.md) searches four candidates for each controller,
+freezes the selected parameters, and evaluates nominal and perturbed held-out
+scenarios. It also reports timing distributions, deadline misses and a
+sampling-time study. See [verification](verification.md) for exact scope.
 
 ## Machine
 

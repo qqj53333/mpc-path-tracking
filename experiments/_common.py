@@ -11,8 +11,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from mpc_pt.models import BicycleParams, bicycle_step
+from mpc_pt.evaluation import constraint_violations
 from mpc_pt.paths import reference_from_path
-from mpc_pt.sim import simulate_closed_loop
+from mpc_pt.sim import SimulationError, simulate_closed_loop
 
 DEFAULT_PARAMS = BicycleParams(wheelbase=2.5)
 
@@ -45,6 +46,18 @@ def run_tracking(path, controller, x0, n_steps, dt, speed, params=DEFAULT_PARAMS
         controller, np.asarray(x0, dtype=float), reference, n_steps, dt,
         plant_step=lambda x, u: bicycle_step(x, u, dt, params),
     )
+    if controller.cfg.constraints:
+        c = controller.cfg
+        violations = constraint_violations(
+            result.states, result.controls, dt, v_min=c.v_min, v_max=c.v_max,
+            a_min=c.a_min, a_max=c.a_max, delta_max=c.delta_max,
+            delta_rate_max=c.ddelta_max / dt,
+        )
+        if max(violations.values()) > 1e-6:
+            raise SimulationError(n_steps, result.states[-1], f"actual constraint violations: {violations}")
+        print(f"validity: {n_steps}/{n_steps} solves accepted; violations {violations}")
+    else:
+        print(f"validity: {n_steps}/{n_steps} solves accepted; actuator limits disabled, model domain enforced")
     s = np.empty(n_steps + 1)
     lateral = np.empty(n_steps + 1)
     for k, state in enumerate(result.states):

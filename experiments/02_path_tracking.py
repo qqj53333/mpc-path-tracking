@@ -1,8 +1,9 @@
 """Phase 2 - MPC path tracking with the kinematic bicycle model.
 
 Two reference paths, one initial lateral offset each: a straight line and a
-circular arc of radius 8 m.  This phase deliberately has **no** input or state
-constraints and no input-change penalty; those come in Phase 3.  The cost is
+circular arc of radius 8 m. This phase has no physical input/state constraints
+and no input-change penalty; those come in Phase 3.
+A steering-domain guard always keeps tan(delta) on its principal branch.  The cost is
 the time-indexed tracking error with `Q`, `R` and the terminal weight `P`.
 
 Run from the repository root:
@@ -103,7 +104,7 @@ def main() -> None:
 
     fig.suptitle(
         f"Phase 2 - bicycle MPC path tracking (N = {config.horizon}, "
-        f"T = {DT} s, v_ref = {SPEED} m/s, no constraints)"
+        f"T = {DT} s, v_ref = {SPEED} m/s, no actuator limits)"
     )
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(OUTPUT_DIR / "02_path_tracking.png", dpi=150)

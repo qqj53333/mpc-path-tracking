@@ -88,6 +88,18 @@ class ClosedLoopResult:
     objectives: np.ndarray     # (n_steps,)
 
 
+class SimulationError(RuntimeError):
+    """Abort an invalid step; solver failures stop before plant application."""
+
+    def __init__(self, step, state, status):
+        self.step = int(step)
+        self.state = np.asarray(state, dtype=float).copy()
+        self.status = str(status)
+        super().__init__(
+            f"simulation stopped at step {step}, state={self.state.tolist()}: {status}"
+        )
+
+
 def simulate_closed_loop(controller, state0, reference, n_steps, dt, plant_step):
     """Roll the MPC out for `n_steps` samples.
 
@@ -102,6 +114,10 @@ def simulate_closed_loop(controller, state0, reference, n_steps, dt, plant_step)
             (same model as the controller here, but kept separate on purpose).
     """
     state0 = np.asarray(state0, dtype=float).reshape(-1)
+    if not np.all(np.isfinite(state0)):
+        raise ValueError("initial state must be finite")
+    if not np.isfinite(dt) or dt <= 0 or not np.isclose(dt, reference.dt):
+        raise ValueError("dt must be positive and match the reference sampling time")
     n_u = controller.control_dim
     states = np.empty((n_steps + 1, state0.size))
     controls = np.empty((n_steps, n_u))
@@ -114,16 +130,22 @@ def simulate_closed_loop(controller, state0, reference, n_steps, dt, plant_step)
     for k in range(n_steps):
         window = reference.window(k, controller.horizon)
         result = controller.solve(states[k], window.states, window.controls, u_prev)
-        u = np.asarray(result.u0, dtype=float).reshape(n_u)
         if result.status != "optimal":
-            # hold the previous input rather than applying a bad solution
-            u = u_prev.copy()
+            raise SimulationError(k, states[k], result.status)
+        if (not all(np.all(np.isfinite(value)) for value in
+                    (result.u0, result.states, result.controls, result.objective))
+                or not np.isfinite(result.constraint_violation)
+                or result.constraint_violation > 1e-6):
+            raise SimulationError(k, states[k], "invalid or infeasible solver output")
+        u = np.asarray(result.u0, dtype=float).reshape(n_u)
         controls[k] = u
         solve_times[k] = result.solve_time
         objectives[k] = result.objective
         statuses.append(result.status)
         u_prev = u
         states[k + 1] = plant_step(states[k], u)
+        if not np.all(np.isfinite(states[k + 1])):
+            raise SimulationError(k, states[k], "non-finite plant state")
 
     return ClosedLoopResult(
         t=dt * np.arange(n_steps + 1),

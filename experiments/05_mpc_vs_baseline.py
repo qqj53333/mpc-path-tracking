@@ -30,6 +30,7 @@ import _common  # noqa: E402
 from mpc_pt.baselines import PurePursuitConfig, simulate_pure_pursuit  # noqa: E402
 from mpc_pt.mpc import NMPCConfig, NonlinearMPC  # noqa: E402
 from mpc_pt.paths import ArcPath  # noqa: E402
+from mpc_pt.evaluation import constraint_violations  # noqa: E402
 
 OUTPUT_DIR = REPO_ROOT / "outputs"
 DT = 0.1
@@ -54,6 +55,10 @@ def main() -> None:
         path, X0, N_STEPS, DT, PurePursuitConfig(lookahead=4.0, speed=SPEED)
     )
     pp_lateral = lateral_series(path, pp_result.states)
+    pp_violations = constraint_violations(pp_result.states, pp_result.controls, DT)
+    if max(pp_violations.values()) > 1e-6:
+        raise RuntimeError(f"invalid baseline: {pp_violations}")
+    print(f"baseline validity: {N_STEPS}/{N_STEPS} finite steps; violations {pp_violations}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     fig, axes = plt.subplots(1, 2, figsize=(13.0, 4.8))

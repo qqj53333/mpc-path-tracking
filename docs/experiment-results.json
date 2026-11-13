@@ -1,32 +1,58 @@
 [
   {
-    "script": "00_open_loop.py",
+    "command": [
+      "experiments/00_open_loop.py"
+    ],
     "exit_code": 0,
     "output": "steps           : 200  (T = 0.1 s, total 20.0 s)\nfinal state     : x=  25.600 m  y=   9.361 m  theta=   0.606 rad  v= -0.000 m/s\npath length     : 30.000 m\n   phase '3 left turn, delta=+0.30': dtheta = +1.237345 rad  (discrete sum +1.237345)\n   phase '4 brake, a=-0.4': dtheta = -0.631046 rad  (discrete sum -0.631046)\nwrote           : outputs\\00_open_loop.png\n"
   },
   {
-    "script": "01_double_integrator_mpc.py",
+    "command": [
+      "experiments/01_double_integrator_mpc.py"
+    ],
     "exit_code": 0,
-    "output": "horizon N       : 20  (T = 0.1 s -> 2.0 s look-ahead)\nlimits          : |v| <= 1.0 m/s, |a| <= 0.5 m/s^2\nfinal state     : p = 4.999999 m (target 5.0), v = -3.33e-06 m/s\nmax |v|         : 1.000000000 m/s\nmax |a|         : 0.500000000 m/s^2\na active steps  : 38 of 150\nv active steps  : 31 of 150\nsolve time      : mean 2.18 ms, max 41.66 ms, total 0.33 s\nstatuses        : ['optimal']\nwrote           : outputs\\01_double_integrator_closed.png\n"
+    "output": "horizon N       : 20  (T = 0.1 s -> 2.0 s look-ahead)\nlimits          : |v| <= 1.0 m/s, |a| <= 0.5 m/s^2\nfinal state     : p = 4.999999 m (target 5.0), v = -3.33e-06 m/s\nmax |v|         : 1.000000000 m/s\nmax |a|         : 0.500000000 m/s^2\na active steps  : 38 of 150\nv active steps  : 31 of 150\nsolve time      : mean 1.98 ms, max 35.02 ms, total 0.30 s\nstatuses        : ['optimal']\nwrote           : outputs\\01_double_integrator_closed.png\n"
   },
   {
-    "script": "02_path_tracking.py",
+    "command": [
+      "experiments/02_path_tracking.py"
+    ],
     "exit_code": 0,
-    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nstraight   |lat| max 0.500 m, end 0.0000 m, rms 0.1254 m | max|delta| 0.423 rad, max|a| 0.12 m/s^2 | solve mean 1.6 ms, max 32.9 ms | status ['optimal']\narc        |lat| max 0.502 m, end 0.0200 m, rms 0.1586 m | max|delta| 0.815 rad, max|a| 0.18 m/s^2 | solve mean 1.9 ms, max 3.5 ms | status ['optimal']\nwrote           : outputs\\02_path_tracking.png\n"
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvalidity: 200/200 solves accepted; actuator limits disabled, model domain enforced\nstraight   |lat| max 0.500 m, end 0.0000 m, rms 0.1254 m | max|delta| 0.423 rad, max|a| 0.12 m/s^2 | solve mean 2.9 ms, max 31.6 ms | status ['optimal']\nvalidity: 120/120 solves accepted; actuator limits disabled, model domain enforced\narc        |lat| max 0.502 m, end 0.0200 m, rms 0.1586 m | max|delta| 0.815 rad, max|a| 0.18 m/s^2 | solve mean 2.6 ms, max 3.8 ms | status ['optimal']\nwrote           : outputs\\02_path_tracking.png\n"
   },
   {
-    "script": "03_constraints.py",
+    "command": [
+      "experiments/03_constraints.py"
+    ],
     "exit_code": 0,
-    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvariant                  max |delta|mean |Delta delta|           max |a|         max |lat|           rms lat       final |lat|          solve ms\nno constraints                0.8154            0.0052            0.1841            0.5024            0.1586            0.0200            2.1618\nlimits                        0.5236            0.0070            0.2216            0.6046            0.2536            0.0202            4.2630\nlimits + S                    0.5236            0.0070            0.2138            0.6047            0.2538            0.0204            4.5643\n\nwrote           : outputs\\03_constraints.png\n"
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvalidity: 120/120 solves accepted; actuator limits disabled, model domain enforced\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nvariant                  max |delta|mean |Delta delta|           max |a|         max |lat|           rms lat       final |lat|          solve ms\nno constraints                0.8154            0.0052            0.1841            0.5024            0.1586            0.0200            2.9886\nlimits                        0.5236            0.0070            0.2216            0.6046            0.2536            0.0202            4.1516\nlimits + S                    0.5236            0.0070            0.2138            0.6047            0.2538            0.0204            4.3288\n\nwrote           : outputs\\03_constraints.png\n"
   },
   {
-    "script": "04_horizon.py",
+    "command": [
+      "experiments/04_horizon.py"
+    ],
     "exit_code": 0,
-    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\n   N   rms lat   max lat  final lat   max|d|  max|a|  solve ms\n   5    0.3449    0.6047     0.1302    0.480   0.112      2.53\n  10    0.2862    0.6064     0.0596    0.524   0.187      3.53\n  20    0.2538    0.6047     0.0204    0.524   0.214      4.70\n  40    0.2454    0.6013     0.0038    0.524   0.308     17.58\n\nwrote           : outputs\\04_horizon.png\n"
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\n   N   rms lat   max lat  final lat   max|d|  max|a|  solve ms\n   5    0.3449    0.6047     0.1302    0.480   0.112      2.35\n  10    0.2862    0.6064     0.0596    0.524   0.187      3.15\n  20    0.2538    0.6047     0.0204    0.524   0.214      4.24\n  40    0.2454    0.6013     0.0038    0.524   0.308     23.02\n\nwrote           : outputs\\04_horizon.png\n"
   },
   {
-    "script": "05_mpc_vs_baseline.py",
+    "command": [
+      "experiments/05_mpc_vs_baseline.py"
+    ],
     "exit_code": 0,
-    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\ncontroller         rms lat   max lat  final lat   max|d|  mean|dd|\nMPC                 0.2538    0.6047     0.0204    0.524   0.00699\npure pursuit        0.2834    0.6038     0.0492    0.450   0.00531\n\nwrote           : outputs\\05_mpc_vs_baseline.png\n"
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvalidity: 120/120 solves accepted; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 0.0}\nbaseline validity: 120/120 finite steps; violations {'speed_mps': 0.0, 'acceleration_mps2': 0.0, 'steering_rad': 0.0, 'steering_rate_radps': 1.1102230246251565e-16}\ncontroller         rms lat   max lat  final lat   max|d|  mean|dd|\nMPC                 0.2538    0.6047     0.0204    0.524   0.00699\npure pursuit        0.2834    0.6038     0.0492    0.450   0.00531\n\nwrote           : outputs\\05_mpc_vs_baseline.png\n"
+  },
+  {
+    "command": [
+      "experiments/06_benchmark.py"
+    ],
+    "exit_code": 0,
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\ntraining mpc parameter=10 complete\ntraining mpc parameter=20 complete\ntraining mpc parameter=30 complete\ntraining mpc parameter=40 complete\ntraining pure_pursuit parameter=1.5 complete\ntraining pure_pursuit parameter=2.0 complete\ntraining pure_pursuit parameter=3.0 complete\ntraining pure_pursuit parameter=4.0 complete\nFrozen parameters: {'mpc': 40, 'pure_pursuit': 2.0}\nheld-out nominal complete\nheld-out wheelbase_plus20pct complete\nheld-out delay_100ms complete\nheld-out noise_seed7 complete\nheld-out noise_seed11 complete\nheld-out noise_seed19 complete\nRecorded 72 runs; invalid: 0\n"
+  },
+  {
+    "command": [
+      "experiments/07_sampling.py"
+    ],
+    "exit_code": 0,
+    "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nT=0.2: N=10, defect=0.00999931 m, RMS=0.319920 m, valid=True\nT=0.1: N=20, defect=0.00249996 m, RMS=0.309804 m, valid=True\nT=0.05: N=40, defect=0.00062500 m, RMS=0.305884 m, valid=True\n"
   }
 ]

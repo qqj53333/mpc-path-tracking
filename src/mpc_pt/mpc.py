@@ -16,13 +16,13 @@ Both expose the same interface used by :mod:`mpc_pt.sim`:
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import casadi as ca
 import cvxpy as cp
 import numpy as np
 
-from .models import CONTROL_DIM, STATE_DIM, di_matrices
+from .models import CONTROL_DIM, STATE_DIM, STEERING_DOMAIN_MAX, di_matrices
 
 
 @dataclass
@@ -33,8 +33,33 @@ class MpcResult:
     states: np.ndarray        # predicted states, (horizon + 1, state_dim)
     controls: np.ndarray      # predicted inputs, (horizon, control_dim)
     solve_time: float         # wall clock, seconds
-    status: str               # "optimal" or "failed"
+    status: str               # "optimal" or the failure reason
     objective: float
+    constraint_violation: float = 0.0
+    solver_status: str = ""
+
+
+def _positive_integer(name, value):
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < 1:
+        raise ValueError(f"{name} must be a positive integer")
+
+
+def _positive(name, value):
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be positive and finite")
+
+
+def _weights(name, value, size):
+    array = np.asarray(value, dtype=float)
+    if array.shape != (size,) or not np.all(np.isfinite(array)) or np.any(array < 0):
+        raise ValueError(f"{name} must contain {size} finite nonnegative weights")
+
+
+def _failed(n, nx, nu, elapsed, status):
+    # Failed iterates are never valid controls and must not become warm starts.
+    return MpcResult(np.full(nu, np.nan), np.full((n + 1, nx), np.nan),
+                     np.full((n, nu), np.nan), elapsed, str(status), float("nan"),
+                     float("inf"), str(status))
 
 
 # ==========================================================================
@@ -53,6 +78,12 @@ class LinearMPCConfig:
     p_scale: float = 1.0      # terminal weight P = p_scale * Q
     v_max: float = 1.0        # |v| <= v_max  [m/s]
     a_max: float = 0.5        # |a| <= a_max  [m/s^2]
+
+    def __post_init__(self):
+        _positive_integer("horizon", self.horizon)
+        for name in ("dt", "v_max", "a_max"):
+            _positive(name, getattr(self, name))
+        _weights("cost", [self.q_position, self.q_velocity, self.r_acc, self.p_scale], 4)
 
 
 class LinearMPC:
@@ -118,26 +149,28 @@ class LinearMPC:
         self._ref.value = ref_states.T
 
         tic = time.perf_counter()
-        self.problem.solve(
-            solver=cp.OSQP, warm_start=True,
-            eps_abs=1e-9, eps_rel=1e-9, max_iter=20000, polishing=True,
-        )
+        try:
+            self.problem.solve(
+                solver=cp.OSQP, warm_start=True,
+                eps_abs=1e-9, eps_rel=1e-9, max_iter=20000, polishing=True,
+            )
+        except cp.error.SolverError:
+            return _failed(n, 2, 1, time.perf_counter() - tic, "solver_error")
         elapsed = time.perf_counter() - tic
 
-        if self._X.value is None or self._U.value is None:
-            return MpcResult(
-                u0=np.zeros(self.control_dim), states=np.zeros((n + 1, 2)),
-                controls=np.zeros((n, 1)), solve_time=elapsed,
-                status="failed", objective=float("nan"),
-            )
+        if (self.problem.status not in ("optimal", "optimal_inaccurate")
+                or self._X.value is None or self._U.value is None):
+            return _failed(n, 2, 1, elapsed, self.problem.status)
 
-        X = np.asarray(self._X.value).T      # (n+1, 2)
-        U = np.asarray(self._U.value).T      # (n, 1)
-        return MpcResult(
-            u0=U[0].copy(), states=X, controls=U, solve_time=elapsed,
-            status="optimal" if self.problem.status in ("optimal", "optimal_inaccurate") else "failed",
-            objective=float(self.problem.value),
-        )
+        X = np.asarray(self._X.value).reshape(2, n + 1).T
+        U = np.asarray(self._U.value).reshape(1, n).T
+        violation = max(float(np.max(c.violation())) for c in self.problem.constraints)
+        if (not np.all(np.isfinite(X)) or not np.all(np.isfinite(U))
+                or not np.isfinite(self.problem.value) or not np.isfinite(violation)
+                or violation > 1e-6):
+            return _failed(n, 2, 1, elapsed, "invalid_solution")
+        return MpcResult(U[0].copy(), X, U, elapsed, "optimal",
+                         float(self.problem.value), violation, self.problem.status)
 
 
 # ==========================================================================
@@ -170,6 +203,21 @@ class NMPCConfig:
     # solver
     max_iter: int = 300
     tol: float = 1e-6
+
+    def __post_init__(self):
+        _positive_integer("horizon", self.horizon)
+        _positive_integer("max_iter", self.max_iter)
+        for name in ("dt", "wheelbase", "tol", "ddelta_max"):
+            _positive(name, getattr(self, name))
+        _weights("q", self.q, 4)
+        _weights("r", self.r, 2)
+        _weights("s_change", self.s_change, 2)
+        _weights("p_scale", [self.p_scale], 1)
+        if not np.isfinite(self.delta_max) or not 0 < self.delta_max < STEERING_DOMAIN_MAX:
+            raise ValueError("delta_max must lie inside the steering model domain")
+        for lo, hi in ((self.v_min, self.v_max), (self.a_min, self.a_max)):
+            if not np.isfinite(lo) or not np.isfinite(hi) or lo >= hi:
+                raise ValueError("constraint bounds must be finite and increasing")
 
 
 class NonlinearMPC:
@@ -224,6 +272,8 @@ class NonlinearMPC:
         cost += ca.mtimes([eN.T, P, eN])
         opti.minimize(cost)
 
+        # The tan(delta) model domain is mandatory. Physical limits are optional.
+        opti.subject_to(opti.bounded(-STEERING_DOMAIN_MAX, U[1, :], STEERING_DOMAIN_MAX))
         if c.constraints:
             opti.subject_to(opti.bounded(c.v_min, X[3, 1:], c.v_max))
             opti.subject_to(opti.bounded(c.a_min, U[0, :], c.a_max))
@@ -243,7 +293,9 @@ class NonlinearMPC:
                     "print_level": 0,
                     "max_iter": c.max_iter,
                     "tol": c.tol,
-                    "acceptable_tol": 1e-4,
+                    "acceptable_tol": 1e-6,
+                    "constr_viol_tol": 1e-7,
+                    "bound_relax_factor": 0.0,
                     "warm_start_init_point": "yes",
                 },
             },
@@ -263,35 +315,40 @@ class NonlinearMPC:
         ref_controls = np.asarray(ref_controls, dtype=float)
         u_prev = np.zeros(CONTROL_DIM) if u_prev is None else np.asarray(u_prev, dtype=float)
 
-        self._opti.set_value(self._p_x0, np.asarray(x0, dtype=float).reshape(STATE_DIM))
+        x0 = np.asarray(x0, dtype=float)
+        for name, value, shape in (("x0", x0, (STATE_DIM,)),
+                                   ("ref_states", ref_states, (n + 1, STATE_DIM)),
+                                   ("ref_controls", ref_controls, (n, CONTROL_DIM)),
+                                   ("u_prev", u_prev, (CONTROL_DIM,))):
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(f"{name} must be finite with shape {shape}")
+        self._opti.set_value(self._p_x0, x0)
         self._opti.set_value(self._p_ref, ref_states.T)
         self._opti.set_value(self._p_uref, ref_controls.T)
         self._opti.set_value(self._p_uprev, u_prev)
 
         tic = time.perf_counter()
-        status = "optimal"
         try:
             sol = self._opti.solve()
-            X = np.asarray(sol.value(self._X)).T
-            U = np.asarray(sol.value(self._U)).T
-            objective = float(sol.value(self._opti.f))
         except RuntimeError:
-            status = str(self._opti.stats().get("return_status", "failed"))
-            # keep the last iterate so the simulation can continue
-            X = np.asarray(self._opti.debug.value(self._X)).T
-            U = np.asarray(self._opti.debug.value(self._U)).T
-            objective = float("nan")
-        elapsed = time.perf_counter() - tic
+            status = str(self._opti.stats().get("return_status", "solver_error"))
+            return _failed(n, STATE_DIM, CONTROL_DIM, time.perf_counter() - tic, status)
 
-        # warm start the next solve from this solution
+        X = np.asarray(sol.value(self._X)).reshape(STATE_DIM, n + 1).T
+        U = np.asarray(sol.value(self._U)).reshape(CONTROL_DIM, n).T
+        objective = float(sol.value(self._opti.f))
+        g = np.asarray(sol.value(self._opti.g)).ravel()
+        lower = np.asarray(sol.value(self._opti.lbg)).ravel()
+        upper = np.asarray(sol.value(self._opti.ubg)).ravel()
+        violation = float(max(0.0, np.max(lower - g), np.max(g - upper)))
+        elapsed = time.perf_counter() - tic
+        if (not np.all(np.isfinite(X)) or not np.all(np.isfinite(U))
+                or not np.all(np.isfinite(g)) or not np.isfinite(objective)
+                or not np.isfinite(violation) or violation > 1e-6):
+            return _failed(n, STATE_DIM, CONTROL_DIM, elapsed, "invalid_solution")
+
+        solver_status = str(sol.stats()["return_status"])
         self._opti.set_initial(self._X, X.T)
         self._opti.set_initial(self._U, U.T)
-
-        return MpcResult(
-            u0=U[0].copy(),
-            states=X,
-            controls=U,
-            solve_time=elapsed,
-            status=status,
-            objective=objective,
-        )
+        return MpcResult(U[0].copy(), X, U, elapsed, "optimal", objective,
+                         violation, solver_status)

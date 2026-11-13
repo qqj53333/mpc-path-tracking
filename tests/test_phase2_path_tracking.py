@@ -96,7 +96,7 @@ def test_straight_tracking_converges(controller) -> None:
 
 
 def test_arc_tracking_converges(controller) -> None:
-    path = ArcPath(radius=8.0, length=30.0, direction=+1.0)
+    path = ArcPath(radius=8.0, length=40.0, direction=+1.0)
     result, lateral = _run(path, [0.0, -0.5, 0.0, SPEED], 140, controller)
 
     assert set(result.statuses) == {"optimal"}

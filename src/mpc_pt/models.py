@@ -1,8 +1,8 @@
 """Dynamics models for the MPC path-tracking project.
 
-The single source of truth for the model is `docs/model.md`, written by the
-project owner.  Until that file exists this module implements the kinematic
-bicycle model with the reference point at the rear-axle centre:
+The model and reference-material provenance are recorded in `docs/model.md`.
+This module implements the kinematic bicycle model with the reference point
+at the rear-axle centre:
 
     state  X = [x, y, theta, v]^T    (m, m, rad, m/s)
     input  u = [a, delta]^T          (m/s^2, rad)
@@ -38,9 +38,11 @@ CONTROL_DIM = 2
 IDX_X, IDX_Y, IDX_THETA, IDX_V = 0, 1, 2, 3
 IDX_A, IDX_DELTA = 0, 1
 
-# Steering angles at or beyond 90 deg make tan(delta) singular.  The vehicle
-# model itself has no such limit; the constraint is added in Phase 3.
+# This plant accepts only the principal steering branch below 90 degrees.
 _DELTA_SINGULAR = 0.5 * np.pi
+# Optimisation always stays on the principal branch, even without actuator
+# limits. The margin avoids the singularity; it is not a realistic actuator bound.
+STEERING_DOMAIN_MAX = _DELTA_SINGULAR - 1e-3
 
 
 @dataclass(frozen=True)
@@ -54,7 +56,7 @@ class BicycleParams:
     wheelbase: float = 2.5
 
     def __post_init__(self) -> None:
-        if self.wheelbase <= 0.0:
+        if not np.isfinite(self.wheelbase) or self.wheelbase <= 0.0:
             raise ValueError(f"wheelbase must be positive, got {self.wheelbase}")
 
 
@@ -154,9 +156,9 @@ def di_step(state: np.ndarray, acc: float, dt: float) -> np.ndarray:
 
 
 def wrap_angle(angle):
-    """Fold an angle (or array of angles) into [-pi, pi).
+    """Fold an angle (or array) into [-pi, pi], with atan2's branch-cut sign.
 
-    atan2 returns values in (-pi, pi]; using sin/cos makes the folding exact
-    for any input, including angles accumulated over many turns.
+    Using sin/cos handles angles accumulated over many turns, subject to
+    floating-point precision.
     """
     return np.arctan2(np.sin(angle), np.cos(angle))

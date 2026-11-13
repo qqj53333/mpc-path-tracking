@@ -1,0 +1,125 @@
+[
+  {
+    "scenario": "sampling_left_R8",
+    "controller": "mpc",
+    "parameter": 10,
+    "dt": 0.2,
+    "plant_wheelbase": 2.5,
+    "noisy": false,
+    "seed": null,
+    "delay_steps": 0,
+    "scale_cost_with_dt": true,
+    "planned_steps": 40,
+    "accepted_decisions": 40,
+    "solver_failures": 0,
+    "valid": true,
+    "reason": "ok",
+    "metrics": {
+      "lateral_rms_m": 0.3199198315334996,
+      "lateral_final_m": 0.052945097416274935,
+      "lateral_max_m": 0.6080578136232361,
+      "steering_rate_rms_radps": 0.20932612137644954,
+      "steering_rate_mean_abs_radps": 0.10899755626374877,
+      "decision_mean_ms": 3.6823400005232543,
+      "decision_p95_ms": 5.182385001171497,
+      "decision_max_ms": 27.029300006688572,
+      "deadline_misses": 0
+    },
+    "max_prediction_violation": 7.523084377680789e-10,
+    "command_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "applied_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "reference_max_position_defect_m": 0.009999305574846178
+  },
+  {
+    "scenario": "sampling_left_R8",
+    "controller": "mpc",
+    "parameter": 20,
+    "dt": 0.1,
+    "plant_wheelbase": 2.5,
+    "noisy": false,
+    "seed": null,
+    "delay_steps": 0,
+    "scale_cost_with_dt": true,
+    "planned_steps": 80,
+    "accepted_decisions": 80,
+    "solver_failures": 0,
+    "valid": true,
+    "reason": "ok",
+    "metrics": {
+      "lateral_rms_m": 0.3098038937861767,
+      "lateral_final_m": 0.026537798711336907,
+      "lateral_max_m": 0.6047334029960669,
+      "steering_rate_rms_radps": 0.21350124786701694,
+      "steering_rate_mean_abs_radps": 0.11004046082884893,
+      "decision_mean_ms": 5.262260000017704,
+      "decision_p95_ms": 7.507574994087917,
+      "decision_max_ms": 34.623899999132846,
+      "deadline_misses": 0
+    },
+    "max_prediction_violation": 9.278995349859542e-10,
+    "command_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "applied_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "reference_max_position_defect_m": 0.0024999565975244017
+  },
+  {
+    "scenario": "sampling_left_R8",
+    "controller": "mpc",
+    "parameter": 40,
+    "dt": 0.05,
+    "plant_wheelbase": 2.5,
+    "noisy": false,
+    "seed": null,
+    "delay_steps": 0,
+    "scale_cost_with_dt": true,
+    "planned_steps": 160,
+    "accepted_decisions": 160,
+    "solver_failures": 0,
+    "valid": true,
+    "reason": "ok",
+    "metrics": {
+      "lateral_rms_m": 0.30588374862637335,
+      "lateral_final_m": 0.015671408423573095,
+      "lateral_max_m": 0.602835162626729,
+      "steering_rate_rms_radps": 0.21732400116498204,
+      "steering_rate_mean_abs_radps": 0.11041536574189444,
+      "decision_mean_ms": 19.190500625063578,
+      "decision_p95_ms": 40.493719999358284,
+      "decision_max_ms": 70.02189999911934,
+      "deadline_misses": 4
+    },
+    "max_prediction_violation": 1.2007557725901563e-09,
+    "command_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "applied_violations": {
+      "speed_mps": 0.0,
+      "acceleration_mps2": 0.0,
+      "steering_rad": 0.0,
+      "steering_rate_radps": 0.0
+    },
+    "reference_max_position_defect_m": 0.0006249972873318889
+  }
+]

@@ -152,8 +152,9 @@ A separate experiment with a looser rate bound would be needed to study it.
 The pure-pursuit baseline runs on the same plant, the same path, the same
 initial state **and the same actuator limits** (30 deg steering, 0.05 rad/step
 slew). Without the slew limit the baseline would jump to the steering bound in
-one step and would look better than it could be on a real vehicle. One
-look-ahead distance (4 m) was used; it was not tuned per scenario.
+one step and would look better than it could be on a real vehicle. The original teaching comparison uses a 4 m look-ahead. The added benchmark
+selects from a fixed grid on training scenarios and freezes it before testing
+(see `benchmark.md`).
 
 ## D-011 - Geometry corrections (2026-11-14)
 
@@ -175,3 +176,34 @@ as reference material, plus implementation details for the double integrator
 and input-change penalty. It is not represented as the owner's completed
 independent explanation. Personal understanding and acceptance remain pending
 in `docs/understanding.md`.
+
+
+## D-012 - Fail immediately on invalid MPC output
+
+Solver errors, non-finite values or constraint residuals above 1e-6 invalidate
+that decision. Closed-loop simulation raises `SimulationError` before applying
+an invalid solver control. There is no hold-last-input fallback. Failed iterates
+are not recycled as warm starts. A solver's original status and the numerical
+constraint residual accompany accepted results. This is an experiment validity
+policy, not a real-vehicle emergency controller.
+
+## D-013 - Model domain is separate from physical constraints
+
+The nonlinear optimiser always enforces `abs(delta) <= pi/2 - 0.001 rad`.
+This margin keeps the bicycle model on the principal tangent branch even when
+physical limits are disabled. It is not a realistic steering bound. The normal
+30 deg actuator bound and slew bound remain additional Phase 3 constraints.
+N=1 output arrays retain their documented dimensions. Invalid horizon/timestep
+configuration is rejected, and constant-speed references exceeding a finite
+path are rejected instead of silently clamping position while retaining speed.
+
+## D-014 - Separate tuning, testing and numerical sensitivity
+
+Experiment 06 fixes four parameter candidates for each controller and three
+training scenarios. Mean training lateral RMS selects a candidate only when
+all its training runs are valid. Parameters then remain fixed on held-out
+nominal, wheelbase-mismatch, delay and noise conditions. Equal candidate counts
+do not imply equal CPU budgets or exhaust all controller tuning possibilities.
+Experiment 07 keeps a 2 s horizon and 0.5 rad/s steering-rate limit; stage
+weights scale with T, input-change weights with 1/T, and the terminal weight
+stays fixed. All numerical results and limitations are in `benchmark.md`.
