@@ -1,0 +1,15 @@
+# Pinned so that a fresh environment reproduces the same figures.
+# Versions were verified on Windows 11 with CPython 3.12.6 (see docs/decisions.md).
+
+numpy==2.3.2
+matplotlib==3.10.5
+
+# QP solver for the Phase 1 linear MPC (cvxpy + OSQP backend)
+cvxpy==1.9.3
+osqp==1.1.3
+
+# NLP solver for the Phase 2/3 bicycle MPC (CasADi + bundled IPOPT)
+casadi==3.8.2
+
+# testing only
+pytest==9.1.1

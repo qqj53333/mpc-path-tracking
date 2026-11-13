@@ -1,0 +1,77 @@
+{
+  "checks": [
+    {
+      "command": [
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit_code": 0,
+      "output": "No broken requirements found.\n"
+    },
+    {
+      "command": [
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "output": "...................................                                      [100%]\n35 passed in 9.35s\n"
+    },
+    {
+      "command": [
+        "experiments/00_open_loop.py"
+      ],
+      "exit_code": 0,
+      "output": "steps           : 200  (T = 0.1 s, total 20.0 s)\nfinal state     : x=  25.600 m  y=   9.361 m  theta=   0.606 rad  v= -0.000 m/s\npath length     : 30.000 m\n   phase '3 left turn, delta=+0.30': dtheta = +1.237345 rad  (discrete sum +1.237345)\n   phase '4 brake, a=-0.4': dtheta = -0.631046 rad  (discrete sum -0.631046)\nwrote           : outputs\\00_open_loop.png\n"
+    },
+    {
+      "command": [
+        "experiments/01_double_integrator_mpc.py"
+      ],
+      "exit_code": 0,
+      "output": "horizon N       : 20  (T = 0.1 s -> 2.0 s look-ahead)\nlimits          : |v| <= 1.0 m/s, |a| <= 0.5 m/s^2\nfinal state     : p = 4.999999 m (target 5.0), v = -3.33e-06 m/s\nmax |v|         : 1.000000000 m/s\nmax |a|         : 0.500000000 m/s^2\na active steps  : 38 of 150\nv active steps  : 31 of 150\nsolve time      : mean 2.19 ms, max 39.27 ms, total 0.33 s\nstatuses        : ['optimal']\nwrote           : outputs\\01_double_integrator_closed.png\n"
+    },
+    {
+      "command": [
+        "experiments/02_path_tracking.py"
+      ],
+      "exit_code": 0,
+      "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nstraight   |lat| max 0.500 m, end 0.0000 m, rms 0.1254 m | max|delta| 0.423 rad, max|a| 0.12 m/s^2 | solve mean 1.6 ms, max 33.0 ms | status ['optimal']\narc        |lat| max 0.502 m, end 0.0200 m, rms 0.1586 m | max|delta| 0.815 rad, max|a| 0.18 m/s^2 | solve mean 1.8 ms, max 3.6 ms | status ['optimal']\nwrote           : outputs\\02_path_tracking.png\n"
+    },
+    {
+      "command": [
+        "experiments/03_constraints.py"
+      ],
+      "exit_code": 0,
+      "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\nvariant                  max |delta|mean |Delta delta|           max |a|         max |lat|           rms lat       final |lat|          solve ms\nno constraints                0.8154            0.0052            0.1841            0.5024            0.1586            0.0200            2.1026\nlimits                        0.5236            0.0070            0.2216            0.6046            0.2536            0.0202            4.2812\nlimits + S                    0.5236            0.0070            0.2138            0.6047            0.2538            0.0204            4.7148\n\nwrote           : outputs\\03_constraints.png\n"
+    },
+    {
+      "command": [
+        "experiments/04_horizon.py"
+      ],
+      "exit_code": 0,
+      "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\n   N   rms lat   max lat  final lat   max|d|  max|a|  solve ms\n   5    0.3449    0.6047     0.1302    0.480   0.112      2.50\n  10    0.2862    0.6064     0.0596    0.524   0.187      3.43\n  20    0.2538    0.6047     0.0204    0.524   0.214      4.71\n  40    0.2454    0.6013     0.0038    0.524   0.308     18.75\n\nwrote           : outputs\\04_horizon.png\n"
+    },
+    {
+      "command": [
+        "experiments/05_mpc_vs_baseline.py"
+      ],
+      "exit_code": 0,
+      "output": "\n******************************************************************************\nThis program contains Ipopt, a library for large-scale nonlinear optimization.\n Ipopt is released as open source code under the Eclipse Public License (EPL).\n         For more information visit https://github.com/coin-or/Ipopt\n******************************************************************************\n\ncontroller         rms lat   max lat  final lat   max|d|  mean|dd|\nMPC                 0.2538    0.6047     0.0204    0.524   0.00699\npure pursuit        0.2834    0.6038     0.0492    0.450   0.00531\n\nwrote           : outputs\\05_mpc_vs_baseline.png\n"
+    }
+  ],
+  "generated_artifacts_identical": {
+    "00_open_loop.csv": true,
+    "00_open_loop.png": true,
+    "01_double_integrator_closed.csv": true,
+    "01_double_integrator_closed.png": true,
+    "01_double_integrator_single.png": true,
+    "02_arc.csv": true,
+    "02_path_tracking.png": true,
+    "02_straight.csv": true,
+    "03_constraints.png": true,
+    "04_horizon.png": true,
+    "05_mpc_vs_baseline.png": true
+  }
+}
